@@ -1,0 +1,80 @@
+name: Backend Production Pipeline
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ 'backend/**' ] # Only runs when backend code changes
+
+jobs:
+  test-and-scan:
+    name: Test & Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      # Requirement: Runs unit tests and integration tests
+      - name: Run Tests
+        run: |
+          cd backend
+          go test -v ./...
+
+      # Requirement: Vulnerability scanning (using govulncheck)
+      - name: Scan for Vulnerabilities
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          cd backend && govulncheck ./...
+
+  build-and-push:
+    name: Build & Containerize
+    needs: test-and-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # Requirement: Builds Docker image
+      - name: Build Docker Image
+        run: docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/starttech-backend:${{ github.sha }} ./backend
+
+      # Requirement: Scans Docker image (Trivy)
+      - name: Scan Docker Image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ secrets.DOCKER_HUB_USERNAME }}/starttech-backend:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1' # Fails the build if "CRITICAL" vulnerabilities are found
+          severity: 'CRITICAL,HIGH'
+
+      # Requirement: Tags and pushes to Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Push Image
+        run: |
+          docker tag ${{ secrets.DOCKER_HUB_USERNAME }}/starttech-backend:${{ github.sha }} ${{ secrets.DOCKER_HUB_USERNAME }}/starttech-backend:latest
+          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/starttech-backend:${{ github.sha }}
+          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/starttech-backend:latest
+
+  deploy:
+    name: Deploy to AWS ECS
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # Requirement: Deploy using rolling update
+      - name: Update ECS Service
+        run: |
+          aws ecs update-service --cluster starttech-cluster --service starttech-service --force-new-deployment

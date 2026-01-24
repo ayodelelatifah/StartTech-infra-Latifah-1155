@@ -19,3 +19,9 @@ module "networking" {
   vpc_cidr            = "10.0.0.0/16"
   public_subnet_cidr  = "10.0.1.0/24"
 }
+
+module "app" {
+  source     = "./modules/app"
+  vpc_id     = module.networking.vpc_id # Uses the output we created!
+  subnet_id  = module.networking.public_subnet_id
+}

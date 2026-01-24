@@ -1,2 +1,3 @@
-module starttech-backend 
-go 1.21 
+module starttech-backend
+
+go 1.21
