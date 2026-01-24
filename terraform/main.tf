@@ -1,8 +1,9 @@
-# 1. DYNAMIC LOOKUP - Finding your existing networking
+# 1. We look up the VPC that ALREADY exists from your failed runs
 data "aws_vpc" "selected" {
-  id = "vpc-0357a5db33ec39634"
+  id = "vpc-0357a5db33ec39634" 
 }
 
+# 2. We look up the subnets inside that VPC
 data "aws_subnets" "all" {
   filter {
     name   = "vpc-id"
@@ -10,31 +11,31 @@ data "aws_subnets" "all" {
   }
 }
 
-resource "random_id" "id" { 
-  byte_length = 4 
+# 3. We use the ECR repo you ALREADY created in the v12 run
+data "aws_ecr_repository" "backend" {
+  name = "starttech-backend-repo-v12"
 }
 
-# 2. S3 BUCKET
-resource "aws_s3_bucket" "frontend" {
-  bucket = "starttech-frontend-latifah-v13-${random_id.id.hex}"
+# 4. We ONLY create the App/Service part
+module "app" {
+  source            = "./modules/app" 
+  vpc_id            = data.aws_vpc.selected.id
+  subnet_ids        = data.aws_subnets.all.ids
+  ecr_repo_url      = data.aws_ecr_repository.backend.repository_url
+  target_group_arn  = aws_lb_target_group.backend_tg.arn
+  security_group_id = aws_security_group.backend_sg.id
 }
 
-# 3. ECR REPOSITORY
-resource "aws_ecr_repository" "backend" {
-  name                 = "starttech-backend-repo-v13-${random_id.id.hex}"
-  image_tag_mutability = "MUTABLE"
-}
-
-# 4. ALB & TARGET GROUP
+# 5. Unique Load Balancer for THIS run
 resource "aws_alb" "main" {
-  name            = "starttech-alb-v13-${random_id.id.hex}"
+  name            = "alb-final-attempt"
   subnets         = data.aws_subnets.all.ids 
   security_groups = [aws_security_group.alb_sg.id]
 }
 
 resource "aws_lb_target_group" "backend_tg" {
   target_type = "ip"
-  name        = "tg-v13-${random_id.id.hex}" # Shortened to stay under char limit
+  name        = "tg-final-attempt"
   port        = 80
   protocol    = "HTTP"
   vpc_id      = data.aws_vpc.selected.id
@@ -50,9 +51,9 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-# 5. SECURITY GROUPS
+# 6. Fresh Security Groups
 resource "aws_security_group" "alb_sg" {
-  name   = "alb-sg-v13-${random_id.id.hex}"
+  name   = "sg-alb-final"
   vpc_id = data.aws_vpc.selected.id
   ingress {
     from_port   = 80
@@ -60,16 +61,10 @@ resource "aws_security_group" "alb_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 }
 
 resource "aws_security_group" "backend_sg" {
-  name   = "backend-sg-v13-${random_id.id.hex}"
+  name   = "sg-backend-final"
   vpc_id = data.aws_vpc.selected.id
   ingress {
     from_port       = 80
@@ -77,36 +72,4 @@ resource "aws_security_group" "backend_sg" {
     protocol        = "tcp"
     security_groups = [aws_security_group.alb_sg.id]
   }
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-# 6. APP MODULE
-module "app" {
-  source            = "./modules/app" 
-  vpc_id            = data.aws_vpc.selected.id
-  subnet_ids        = data.aws_subnets.all.ids
-  ecr_repo_url      = aws_ecr_repository.backend.repository_url
-  target_group_arn  = aws_lb_target_group.backend_tg.arn
-  security_group_id = aws_security_group.backend_sg.id
-}
-
-# 7. LOG GROUPS - THE FINAL FIX (Using Random Hex)
-resource "aws_cloudwatch_log_group" "api_log" {
-  name              = "/aws/lambda/api-v13-${random_id.id.hex}" 
-  retention_in_days = 7
-}
-
-resource "aws_cloudwatch_log_group" "backend_logs" {
-  name              = "/ecs/backend-v13-${random_id.id.hex}"
-  retention_in_days = 7
-}
-
-resource "aws_cloudwatch_log_group" "ecs_logs" {
-  name              = "/ecs/service-v13-${random_id.id.hex}"
-  retention_in_days = 7
 }
