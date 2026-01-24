@@ -13,6 +13,34 @@ resource "aws_alb" "main" {
   subnets         = var.subnet_ids # Note: Using a list for High Availability
   security_groups = [aws_security_group.alb_sg.id]
 }
+# 2a. Target Group (The "Destination" for the ALB)
+resource "aws_lb_target_group" "backend_tg" {
+  name     = "starttech-backend-tg-v5"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = var.vpc_id
+
+  health_check {
+    path                = "/health" # Must match your Go code!
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    matcher             = "200"
+  }
+}
+
+# 2b. ALB Listener (The "Ear" that listens for traffic)
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_alb.main.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.backend_tg.arn
+  }
+}
 
 # 3. Security Group for ALB
 resource "aws_security_group" "alb_sg" {
@@ -103,16 +131,39 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 # 6. Launch Template for ECS/Backend
 resource "aws_launch_template" "backend" {
   name_prefix   = "starttech-backend-"
-  image_id      = "ami-0c101f26f147fa7fd" 
+  image_id      = "ami-0c101f26f147fa7fd"
   instance_type = "t3.micro"
-  iam_instance_profile { 
-    name = aws_iam_instance_profile.ecs_profile.name 
-  }
-}
-network_interfaces {
+
+  # We use this block to attach the security group and public IP
+  network_interfaces {
     associate_public_ip_address = true
     security_groups             = [aws_security_group.backend_sg.id]
+    device_index                = 0 # Added to satisfy provider requirements
   }
+
+  iam_instance_profile {
+    name = aws_iam_instance_profile.ecs_profile.name
+  }
+
+user_data = base64encode(<<-EOF
+    #!/bin/bash
+    # 1. Update and Install Docker
+    yum update -y
+    yum install -y docker
+    systemctl start docker
+    systemctl enable docker
+    usermod -a -G docker ec2-user
+
+    # 2. Login to ECR (Using the IAM Role attached to the instance)
+    # Note: Replace us-east-1 with your region if different
+    aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${var.ecr_repo_url}
+
+    # 3. Pull and Run the Container
+    docker pull ${var.ecr_repo_url}:latest
+    docker run -d -p 80:8080 ${var.ecr_repo_url}:latest
+  EOF
+  )
+}
 
 # 7. Auto Scaling Group
 resource "aws_autoscaling_group" "backend_asg" {
@@ -120,6 +171,7 @@ resource "aws_autoscaling_group" "backend_asg" {
   desired_capacity    = 2
   max_size            = 3
   min_size            = 1
+  target_group_arns   = [aws_lb_target_group.backend_tg.arn]
   launch_template {
     id      = aws_launch_template.backend.id
     version = "$Latest"
