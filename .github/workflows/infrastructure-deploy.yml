@@ -25,6 +25,15 @@ jobs:
         run: terraform plan
         working-directory: ./terraform
         env:
-          AWS_ACCESSKEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_ACCESSKEY_ID: ${{ secrets.AWS_ACCESSKEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'us-east-1'
+
+      - name: Terraform Apply
+        # This is the line that actually builds the cluster in AWS
+        run: terraform apply -auto-approve
+        working-directory: ./terraform
+        env:
+          AWS_ACCESSKEY_ID: ${{ secrets.AWS_ACCESSKEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: 'us-east-1'
