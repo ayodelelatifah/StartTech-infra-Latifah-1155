@@ -31,6 +31,25 @@ resource "aws_security_group" "alb_sg" {
   }
 }
 
+resource "aws_security_group" "backend_sg" {
+  name   = "starttech-backend-sg-v5"
+  vpc_id = var.vpc_id
+
+  ingress {
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_sg.id] # Only allow the ALB in
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 # 4. Redis Cluster
 resource "aws_elasticache_cluster" "redis" {
   cluster_id           = "starttech-redis-v5"
@@ -90,6 +109,10 @@ resource "aws_launch_template" "backend" {
     name = aws_iam_instance_profile.ecs_profile.name 
   }
 }
+network_interfaces {
+    associate_public_ip_address = true
+    security_groups             = [aws_security_group.backend_sg.id]
+  }
 
 # 7. Auto Scaling Group
 resource "aws_autoscaling_group" "backend_asg" {
