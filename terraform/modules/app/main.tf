@@ -7,7 +7,7 @@ resource "random_id" "id" {
   byte_length = 4 
 }
 
-# 2. ECR Repository (This generates the URL you were missing)
+# 2. ECR Repository (Creates the URL needed for the App Module)
 resource "aws_ecr_repository" "backend" {
   name                 = "starttech-backend-repo"
   image_tag_mutability = "MUTABLE"
@@ -90,23 +90,23 @@ resource "aws_security_group" "backend_sg" {
 # 5. Redis Cluster
 resource "aws_elasticache_cluster" "redis" {
   cluster_id           = "starttech-redis-v5"
-  engine              = "redis"
-  node_type           = "cache.t3.micro"
+  engine               = "redis"
+  node_type            = "cache.t3.micro"
   num_cache_nodes      = 1
   parameter_group_name = "default.redis7"
-  port                = 6379
+  port                 = 6379
 }
 
-# 6. App Module (The block that was causing the error)
+# 6. App Module
 module "app" {
-  source       = "./modules/app" # Ensure this path matches your folder structure
+  source       = "./modules/app" 
   vpc_id       = var.vpc_id
   subnet_ids   = var.subnet_ids
   
-  # This line fixes the "ecr_repo_url" is required error:
+  # Resolves the "ecr_repo_url is required" error
   ecr_repo_url = aws_ecr_repository.backend.repository_url
   
-  # Add other variables the module might need here, for example:
-  # target_group_arn = aws_lb_target_group.backend_tg.arn
-  # security_group_id = aws_security_group.backend_sg.id
+  # Injects necessary resource IDs into the module
+  target_group_arn  = aws_lb_target_group.backend_tg.arn
+  security_group_id = aws_security_group.backend_sg.id
 }
