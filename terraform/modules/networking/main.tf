@@ -18,6 +18,17 @@ resource "aws_subnet" "public" {
   }
 }
 
+resource "aws_subnet" "public_2" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.2.0/24"
+  availability_zone       = "us-east-1b"
+  map_public_ip_on_launch = true
+  tags = {
+    Name = "starttech-public2-subnet"
+  }
+
+}
+
 # Create an Internet Gateway to allow internet access
 resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.main.id
