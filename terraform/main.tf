@@ -1,10 +1,9 @@
-# 1. Networking Module (Updated for Multi-AZ)
-module "networking" {
-  source                = "./modules/networking"
-  vpc_cidr              = "10.0.0.0/16"
-  public_subnet_cidr    = "10.0.1.0/24"
-  public_subnet_2_cidr  = "10.0.2.0/24" 
-}
+# 1. NETWORKING (Commented out to stop conflicts with existing AWS resources)
+# module "networking" {
+#   source                = "./modules/networking"
+#   vpc_id                = "vpc-0357a5db33ec39634"
+#   ...
+# }
 
 # 2. S3 Bucket for Frontend
 resource "aws_s3_bucket" "frontend" {
@@ -28,7 +27,8 @@ resource "aws_ecr_repository" "backend" {
 # 4. Infrastructure: Load Balancer & Routing
 resource "aws_alb" "main" {
   name            = "starttech-alb-v5"
-  subnets         = module.networking.public_subnet_ids 
+  # PASTE YOUR SUBNET IDs HERE (e.g., "subnet-123", "subnet-456")
+  subnets         = ["subnet-07080b06b0d990666", "subnet-08f32c18096f30419"] 
   security_groups = [aws_security_group.alb_sg.id]
 }
 
@@ -37,7 +37,7 @@ resource "aws_lb_target_group" "backend_tg" {
   name        = "starttech-backend-tg-v5"
   port        = 80
   protocol    = "HTTP"
-  vpc_id      = module.networking.vpc_id
+  vpc_id      = "vpc-0357a5db33ec39634"
 
   health_check {
     path                = "/health"
@@ -62,7 +62,7 @@ resource "aws_lb_listener" "http" {
 
 # 5. Security Groups
 resource "aws_security_group" "alb_sg" {
-  vpc_id = module.networking.vpc_id
+  vpc_id = "vpc-0357a5db33ec39634"
   ingress {
     from_port   = 80
     to_port     = 80
@@ -79,7 +79,7 @@ resource "aws_security_group" "alb_sg" {
 
 resource "aws_security_group" "backend_sg" {
   name   = "starttech-backend-sg-v5"
-  vpc_id = module.networking.vpc_id
+  vpc_id = "vpc-0357a5db33ec39634"
 
   ingress {
     from_port       = 80
@@ -95,28 +95,19 @@ resource "aws_security_group" "backend_sg" {
   }
 }
 
-# 6. App Module
+# 6. App Module (Connected directly to existing VPC/Subnets)
 module "app" {
   source            = "./modules/app" 
-  vpc_id            = module.networking.vpc_id
-  subnet_ids        = module.networking.public_subnet_ids
+  vpc_id            = "vpc-0357a5db33ec39634"
+  # PASTE YOUR SUBNET IDs HERE
+  subnet_ids        = ["subnet-07080b06b0d990666", "subnet-08f32c18096f30419"]
   ecr_repo_url      = aws_ecr_repository.backend.repository_url
   target_group_arn  = aws_lb_target_group.backend_tg.arn
   security_group_id = aws_security_group.backend_sg.id
 }
 
-# -----------------------------------------------------------------
-# CLOUDWATCH LOGS (Updated Fix)
-# -----------------------------------------------------------------
-
+# 7. CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "api_log" {
-  # We change the name slightly to ensure it's unique and can be created
-  name              = "/aws/lambda/starttech-api-log-v5" 
+  name              = "/aws/lambda/starttech-api-log-final" 
   retention_in_days = 7
-}
-
-# Keep your VPC import as it is (assuming you added the correct ID)
-import {
-  to = module.networking.aws_vpc.main
-  id = "vpc-0357a5db33ec39634" 
 }
