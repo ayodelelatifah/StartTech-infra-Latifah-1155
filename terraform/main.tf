@@ -10,9 +10,9 @@ data "aws_subnets" "all" {
   }
 }
 
-# 2. S3 BUCKET (Fresh v11 name)
+# 2. S3 BUCKET (Fresh v12 name)
 resource "aws_s3_bucket" "frontend" {
-  bucket = "starttech-frontend-latifah-v11-${random_id.id.hex}"
+  bucket = "starttech-frontend-latifah-v12-${random_id.id.hex}"
 }
 
 resource "random_id" "id" { 
@@ -21,20 +21,20 @@ resource "random_id" "id" {
 
 # 3. ECR REPOSITORY
 resource "aws_ecr_repository" "backend" {
-  name                 = "starttech-backend-repo-v11"
+  name                 = "starttech-backend-repo-v12"
   image_tag_mutability = "MUTABLE"
 }
 
 # 4. ALB & TARGET GROUP
 resource "aws_alb" "main" {
-  name            = "starttech-alb-v11"
+  name            = "starttech-alb-v12"
   subnets         = data.aws_subnets.all.ids 
   security_groups = [aws_security_group.alb_sg.id]
 }
 
 resource "aws_lb_target_group" "backend_tg" {
   target_type = "ip"
-  name        = "starttech-tg-v11"
+  name        = "starttech-tg-v12"
   port        = 80
   protocol    = "HTTP"
   vpc_id      = data.aws_vpc.selected.id
@@ -50,9 +50,9 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-# 5. SECURITY GROUPS (Fresh v11 names)
+# 5. SECURITY GROUPS
 resource "aws_security_group" "alb_sg" {
-  name   = "starttech-alb-sg-v11"
+  name   = "starttech-alb-sg-v12"
   vpc_id = data.aws_vpc.selected.id
   ingress {
     from_port   = 80
@@ -69,7 +69,7 @@ resource "aws_security_group" "alb_sg" {
 }
 
 resource "aws_security_group" "backend_sg" {
-  name   = "starttech-backend-sg-v11"
+  name   = "starttech-backend-sg-v12"
   vpc_id = data.aws_vpc.selected.id
   ingress {
     from_port       = 80
@@ -95,18 +95,18 @@ module "app" {
   security_group_id = aws_security_group.backend_sg.id
 }
 
-# 7. LOG GROUPS - THE CRITICAL FIX (All renamed to v11)
+# 7. CLOUDWATCH LOGS - Renamed to v12 to kill the "AlreadyExists" error
 resource "aws_cloudwatch_log_group" "api_log" {
-  name              = "/aws/lambda/starttech-api-v11" 
+  name              = "/aws/lambda/starttech-api-v12" 
   retention_in_days = 7
 }
 
 resource "aws_cloudwatch_log_group" "backend_logs" {
-  name              = "/ecs/starttech-backend-v11"
+  name              = "/ecs/starttech-backend-v12"
   retention_in_days = 7
 }
 
 resource "aws_cloudwatch_log_group" "ecs_logs" {
-  name              = "/ecs/starttech-service-v11"
+  name              = "/ecs/starttech-service-v12"
   retention_in_days = 7
 }
