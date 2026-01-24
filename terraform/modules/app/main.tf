@@ -9,7 +9,7 @@ resource "random_id" "id" {
 
 # 2. Application Load Balancer (ALB)
 resource "aws_alb" "main" {
-  name            = "starttech-alb-v3"
+  name            = "starttech-alb-v4"
   subnets         = var.subnet_ids # Note: Using a list for High Availability
   security_groups = [aws_security_group.alb_sg.id]
 }
@@ -33,7 +33,7 @@ resource "aws_security_group" "alb_sg" {
 
 # 4. Redis Cluster
 resource "aws_elasticache_cluster" "redis" {
-  cluster_id           = "starttech-redis-v3"
+  cluster_id           = "starttech-redis-v4"
   engine               = "redis"
   node_type            = "cache.t3.micro"
   num_cache_nodes      = 1
