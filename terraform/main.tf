@@ -4,7 +4,7 @@ module "networking" {
   vpc_cidr            = "10.0.0.0/16"
   # Provide a list if your module supports it, or ensure the module 
   # creates at least two subnets internally.
-  public_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24"] 
+  public_subnet_cidr = ["10.0.1.0/24", "10.0.2.0/24"] 
 }
 
 # 2. S3 Bucket for Frontend
