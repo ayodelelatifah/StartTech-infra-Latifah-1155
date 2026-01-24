@@ -1,9 +1,8 @@
 output "vpc_id" {
-  value       = aws_vpc.main.id
-  description = "The ID of the VPC"
+  value = aws_vpc.main.id
 }
 
 output "public_subnet_ids" {
-  value = [aws_subnet.public_1.id, aws_subnet.public_2.id]
-  description = "The IDs of the public subnets"
+  # We must use public_1 and public_2 because 'public' no longer exists
+  value = [aws_subnet.public.id, aws_subnet.public_2.id]
 }
