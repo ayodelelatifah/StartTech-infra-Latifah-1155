@@ -9,10 +9,6 @@ terraform {
   }
 }
 
-provider "aws" {
-  region = "us-east-1"
-}
-
 # This block pulls in the code you wrote in modules/networking
 module "networking" {
   source              = "./modules/networking"
