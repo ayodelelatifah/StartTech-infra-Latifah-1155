@@ -1,6 +1,12 @@
-.terraform/
+# Terraform
 *.tfstate
 *.tfstate.backup
+.terraform/
 .terraform.lock.hcl
-*.exe
-node_modules/
+*.tfvars
+override.tf
+crash.log
+
+# Local env / OS
+.env
+.DS_Store
