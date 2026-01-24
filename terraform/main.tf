@@ -1,8 +1,10 @@
-# 1. Networking Module
+# 1. Networking Module (Updated for Multi-AZ)
 module "networking" {
-  source             = "./modules/networking"
-  vpc_cidr           = "10.0.0.0/16"
-  public_subnet_cidr = "10.0.1.0/24"
+  source              = "./modules/networking"
+  vpc_cidr            = "10.0.0.0/16"
+  # Provide a list if your module supports it, or ensure the module 
+  # creates at least two subnets internally.
+  public_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24"] 
 }
 
 # 2. S3 Bucket for Frontend
@@ -27,11 +29,13 @@ resource "aws_ecr_repository" "backend" {
 # 4. Infrastructure: Load Balancer & Routing
 resource "aws_alb" "main" {
   name            = "starttech-alb-v5"
-  subnets         = module.networking.public_subnet_ids
+  # module.networking.public_subnet_ids should return a LIST of at least 2 IDs
+  subnets         = module.networking.public_subnet_ids 
   security_groups = [aws_security_group.alb_sg.id]
 }
 
 resource "aws_lb_target_group" "backend_tg" {
+  target_type = "ip" # <--- MUST be "ip" for Fargate
   name        = "starttech-backend-tg-v5"
   port        = 80
   protocol    = "HTTP"
