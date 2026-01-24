@@ -80,3 +80,4 @@ resource "aws_security_group" "backend_sg" {
 # 4. Redis Cluster
 resource "aws_elasticache_cluster" "redis" {
   cluster_id           = "starttech-redis-v5"
+}
