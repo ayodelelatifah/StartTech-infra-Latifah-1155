@@ -1,10 +1,8 @@
 # 1. Networking Module (Updated for Multi-AZ)
 module "networking" {
-  source               = "./modules/networking"
-  vpc_cidr             = "10.0.0.0/16"
+  source                = "./modules/networking"
+  vpc_cidr              = "10.0.0.0/16"
   public_subnet_cidr    = "10.0.1.0/24"
-  
-  # Add this if your module's variables.tf requires it
   public_subnet_2_cidr  = "10.0.2.0/24" 
 }
 
@@ -17,7 +15,7 @@ resource "random_id" "id" {
   byte_length = 4 
 }
 
-# 3. ECR Repository (Creates the URL needed for the App Module)
+# 3. ECR Repository
 resource "aws_ecr_repository" "backend" {
   name                 = "starttech-backend-repo"
   image_tag_mutability = "MUTABLE"
@@ -30,19 +28,16 @@ resource "aws_ecr_repository" "backend" {
 # 4. Infrastructure: Load Balancer & Routing
 resource "aws_alb" "main" {
   name            = "starttech-alb-v5"
-  # module.networking.public_subnet_ids should return a LIST of at least 2 IDs
   subnets         = module.networking.public_subnet_ids 
   security_groups = [aws_security_group.alb_sg.id]
 }
 
 resource "aws_lb_target_group" "backend_tg" {
-  target_type = "ip" # <--- MUST be "ip" for Fargate
+  target_type = "ip"
   name        = "starttech-backend-tg-v5"
   port        = 80
   protocol    = "HTTP"
   vpc_id      = module.networking.vpc_id
-
-
 
   health_check {
     path                = "/health"
@@ -64,6 +59,7 @@ resource "aws_lb_listener" "http" {
     target_group_arn = aws_lb_target_group.backend_tg.arn
   }
 }
+
 # 5. Security Groups
 resource "aws_security_group" "alb_sg" {
   vpc_id = module.networking.vpc_id
@@ -91,7 +87,6 @@ resource "aws_security_group" "backend_sg" {
     protocol        = "tcp"
     security_groups = [aws_security_group.alb_sg.id]
   }
-
   egress {
     from_port   = 0
     to_port     = 0
@@ -100,26 +95,37 @@ resource "aws_security_group" "backend_sg" {
   }
 }
 
-# 6. Redis Cluster
-resource "aws_elasticache_cluster" "redis" {
-  cluster_id           = "starttech-redis-v5"
-  engine               = "redis"
-  node_type            = "cache.t3.micro"
-  num_cache_nodes      = 1
-  parameter_group_name = "default.redis7"
-  port                 = 6379
-}
-
-# 7. App Module (Updated to pass all required data)
+# 6. App Module
 module "app" {
-  source       = "./modules/app" 
-  vpc_id       = module.networking.vpc_id
-  subnet_ids   = module.networking.public_subnet_ids
-  
-  # This fixes the "ecr_repo_url is required" error
-  ecr_repo_url = aws_ecr_repository.backend.repository_url
-  
-  # These link the Load Balancer and Security Groups created above to your container
+  source            = "./modules/app" 
+  vpc_id            = module.networking.vpc_id
+  subnet_ids        = module.networking.public_subnet_ids
+  ecr_repo_url      = aws_ecr_repository.backend.repository_url
   target_group_arn  = aws_lb_target_group.backend_tg.arn
   security_group_id = aws_security_group.backend_sg.id
+}
+
+# -----------------------------------------------------------------
+# CLOUDWATCH LOGS & IMPORTS
+# -----------------------------------------------------------------
+
+# Resource definition for logs
+resource "aws_cloudwatch_log_group" "api_log" {
+  name = "/aws/lambda/starttech-api-log"
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
+# Import for Logs
+import {
+  to = aws_cloudwatch_log_group.api_log
+  id = "/aws/lambda/starttech-api-log"
+}
+
+# Import for existing VPC - STOPS VpcLimitExceeded ERROR
+import {
+  to = module.networking.aws_vpc.main
+  id = "vpc-0357a5db33ec39634" 
 }
