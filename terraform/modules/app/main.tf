@@ -182,3 +182,21 @@ resource "aws_iam_instance_profile" "ecs_profile" {
   name = "ecs-instance-profile-${random_id.id.hex}"
   role = aws_iam_role.ecs_agent.name
 }
+# Create the ECR repository
+resource "aws_ecr_repository" "backend" {
+  name                 = "starttech-backend"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+module "app" {
+  source       = "./modules/app"
+  vpc_id       = module.networking.vpc_id
+  subnet_ids   = module.networking.public_subnet_ids
+  
+  # This dynamic reference fixes the "required argument" error
+  ecr_repo_url = aws_ecr_repository.backend.repository_url 
+}
