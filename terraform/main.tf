@@ -1,8 +1,6 @@
-# 1. NETWORKING (Commented out to stop conflicts with existing AWS resources)
+# 1. NETWORKING - Commented out to avoid "Already Exists" conflicts
 # module "networking" {
-#   source                = "./modules/networking"
-#   vpc_id                = "vpc-0357a5db33ec39634"
-#   ...
+#   source = "./modules/networking"
 # }
 
 # 2. S3 Bucket for Frontend
@@ -27,7 +25,7 @@ resource "aws_ecr_repository" "backend" {
 # 4. Infrastructure: Load Balancer & Routing
 resource "aws_alb" "main" {
   name            = "starttech-alb-v5"
-  # PASTE YOUR SUBNET IDs HERE (e.g., "subnet-123", "subnet-456")
+  # These are the subnets from your existing VPC
   subnets         = ["subnet-07080b06b0d990666", "subnet-08f32c18096f30419"] 
   security_groups = [aws_security_group.alb_sg.id]
 }
@@ -95,11 +93,10 @@ resource "aws_security_group" "backend_sg" {
   }
 }
 
-# 6. App Module (Connected directly to existing VPC/Subnets)
+# 6. App Module - Manually connected to your VPC and Subnets
 module "app" {
   source            = "./modules/app" 
   vpc_id            = "vpc-0357a5db33ec39634"
-  # PASTE YOUR SUBNET IDs HERE
   subnet_ids        = ["subnet-07080b06b0d990666", "subnet-08f32c18096f30419"]
   ecr_repo_url      = aws_ecr_repository.backend.repository_url
   target_group_arn  = aws_lb_target_group.backend_tg.arn
@@ -108,6 +105,7 @@ module "app" {
 
 # 7. CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "api_log" {
-  name              = "/aws/lambda/starttech-api-log-final" 
+  # New name to ensure no "AlreadyExists" error
+  name              = "/aws/lambda/starttech-api-log-success" 
   retention_in_days = 7
 }
