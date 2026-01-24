@@ -1,6 +1,6 @@
-# 1. DYNAMIC LOOKUP - This finds your existing AWS infra automatically
+# 1. DYNAMIC LOOKUP
 data "aws_vpc" "selected" {
-  id = "vpc-0357a5db33ec39634" # Your verified VPC ID from the logs
+  id = "vpc-0357a5db33ec39634"
 }
 
 data "aws_subnets" "all" {
@@ -10,38 +10,34 @@ data "aws_subnets" "all" {
   }
 }
 
-# 2. S3 Bucket for Frontend (Using a fresh v9 name)
+# 2. S3 BUCKET (Fresh v10 name)
 resource "aws_s3_bucket" "frontend" {
-  bucket = "starttech-frontend-latifah-v9-${random_id.id.hex}"
+  bucket = "starttech-frontend-latifah-v10-${random_id.id.hex}"
 }
 
 resource "random_id" "id" { 
   byte_length = 4 
 }
 
-# 3. ECR Repository
+# 3. ECR REPOSITORY
 resource "aws_ecr_repository" "backend" {
-  name                 = "starttech-backend-repo-v9"
+  name                 = "starttech-backend-repo-v10"
   image_tag_mutability = "MUTABLE"
 }
 
-# 4. Infrastructure: Load Balancer (Using dynamic subnets)
+# 4. ALB & TARGET GROUP
 resource "aws_alb" "main" {
-  name            = "starttech-alb-v9"
+  name            = "starttech-alb-v10"
   subnets         = data.aws_subnets.all.ids 
   security_groups = [aws_security_group.alb_sg.id]
 }
 
 resource "aws_lb_target_group" "backend_tg" {
   target_type = "ip"
-  name        = "starttech-tg-v9"
+  name        = "starttech-tg-v10"
   port        = 80
   protocol    = "HTTP"
   vpc_id      = data.aws_vpc.selected.id
-
-  health_check {
-    path = "/health"
-  }
 }
 
 resource "aws_lb_listener" "http" {
@@ -54,9 +50,9 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-# 5. Security Groups
+# 5. SECURITY GROUPS
 resource "aws_security_group" "alb_sg" {
-  name   = "starttech-alb-sg-v9"
+  name   = "starttech-alb-sg-v10"
   vpc_id = data.aws_vpc.selected.id
   ingress {
     from_port   = 80
@@ -73,7 +69,7 @@ resource "aws_security_group" "alb_sg" {
 }
 
 resource "aws_security_group" "backend_sg" {
-  name   = "starttech-backend-sg-v9"
+  name   = "starttech-backend-sg-v10"
   vpc_id = data.aws_vpc.selected.id
   ingress {
     from_port       = 80
@@ -89,7 +85,7 @@ resource "aws_security_group" "backend_sg" {
   }
 }
 
-# 6. App Module (Plugged into dynamic IDs)
+# 6. APP MODULE
 module "app" {
   source            = "./modules/app" 
   vpc_id            = data.aws_vpc.selected.id
@@ -99,13 +95,18 @@ module "app" {
   security_group_id = aws_security_group.backend_sg.id
 }
 
-# 7. CloudWatch Log Group (Fresh names to bypass "AlreadyExists")
-resource "aws_cloudwatch_log_group" "api_log_v9" {
-  name              = "/aws/lambda/starttech-api-v9" 
+# 7. ALL LOG GROUPS - UPDATED NAMES
+resource "aws_cloudwatch_log_group" "api_log" {
+  name              = "/aws/lambda/starttech-api-v10" 
   retention_in_days = 7
 }
 
-resource "aws_cloudwatch_log_group" "backend_logs_v9" {
-  name              = "/ecs/starttech-backend-v9"
+resource "aws_cloudwatch_log_group" "backend_logs" {
+  name              = "/ecs/starttech-backend-v10"
+  retention_in_days = 7
+}
+
+resource "aws_cloudwatch_log_group" "ecs_logs" {
+  name              = "/ecs/starttech-service-v10"
   retention_in_days = 7
 }
