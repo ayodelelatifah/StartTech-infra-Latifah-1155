@@ -1,4 +1,4 @@
-# 1. NETWORKING - Commented out to avoid "Already Exists" conflicts
+# 1. NETWORKING - Commented out to avoid conflicts with existing subnets/gateways
 # module "networking" {
 #   source = "./modules/networking"
 # }
@@ -24,15 +24,15 @@ resource "aws_ecr_repository" "backend" {
 
 # 4. Infrastructure: Load Balancer & Routing
 resource "aws_alb" "main" {
-  name            = "starttech-alb-v5"
-  # These are the subnets from your existing VPC
+  name            = "starttech-alb-final-v5"
+  # Using the subnets already present in your VPC
   subnets         = ["subnet-07080b06b0d990666", "subnet-08f32c18096f30419"] 
   security_groups = [aws_security_group.alb_sg.id]
 }
 
 resource "aws_lb_target_group" "backend_tg" {
   target_type = "ip"
-  name        = "starttech-backend-tg-v5"
+  name        = "starttech-tg-final-v5"
   port        = 80
   protocol    = "HTTP"
   vpc_id      = "vpc-0357a5db33ec39634"
@@ -76,7 +76,7 @@ resource "aws_security_group" "alb_sg" {
 }
 
 resource "aws_security_group" "backend_sg" {
-  name   = "starttech-backend-sg-v5"
+  name   = "starttech-backend-sg-final-v5"
   vpc_id = "vpc-0357a5db33ec39634"
 
   ingress {
@@ -93,7 +93,7 @@ resource "aws_security_group" "backend_sg" {
   }
 }
 
-# 6. App Module - Manually connected to your VPC and Subnets
+# 6. App Module - Linked directly to your existing infrastructure
 module "app" {
   source            = "./modules/app" 
   vpc_id            = "vpc-0357a5db33ec39634"
@@ -103,9 +103,8 @@ module "app" {
   security_group_id = aws_security_group.backend_sg.id
 }
 
-# 7. CloudWatch Log Group
+# 7. CloudWatch Log Group - UNIQUE NAME TO BYPASS "ALREADY EXISTS" ERROR
 resource "aws_cloudwatch_log_group" "api_log" {
-  # New name to ensure no "AlreadyExists" error
-  name              = "/aws/lambda/starttech-api-log-success" 
+  name              = "/aws/lambda/starttech-api-deploy-success" 
   retention_in_days = 7
 }
