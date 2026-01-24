@@ -41,7 +41,3 @@ resource "aws_iam_role_policy_attachment" "ecs_cw_logs" {
   role       = aws_iam_role.ecs_agent.name
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
 }
-import {
-  to = aws_cloudwatch_log_group.api_log
-  id = "/aws/lambda/starttech-api-log"
-}
