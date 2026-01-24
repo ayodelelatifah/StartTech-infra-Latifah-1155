@@ -1,12 +1,12 @@
 # CloudWatch Log Group for Backend Logs
 resource "aws_cloudwatch_log_group" "backend_logs" {
-  name              = "/ecs/starttech-backend-v2"
+  name              = "/ecs/starttech-backend-v3"
   retention_in_days = 7
 }
 
 # IAM Role for EC2/ECS Instances
 resource "aws_iam_role" "ecs_agent" {
-  name = "starttech-ecs-agent-v2"
+  name = "starttech-ecs-agent-v3"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"

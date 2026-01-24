@@ -43,7 +43,7 @@ resource "aws_elasticache_cluster" "redis" {
 }
 
 resource "aws_elasticache_subnet_group" "main" {
-  name       = "redis-subnets-v2"
+  name       = "redis-subnets-v3"
   subnet_ids = var.subnet_ids
 }
 
