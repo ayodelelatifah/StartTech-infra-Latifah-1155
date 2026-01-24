@@ -106,25 +106,16 @@ module "app" {
 }
 
 # -----------------------------------------------------------------
-# CLOUDWATCH LOGS & IMPORTS
+# CLOUDWATCH LOGS (Updated Fix)
 # -----------------------------------------------------------------
 
-# Resource definition for logs
 resource "aws_cloudwatch_log_group" "api_log" {
-  name = "/aws/lambda/starttech-api-log"
-
-  lifecycle {
-    ignore_changes = all
-  }
+  # We change the name slightly to ensure it's unique and can be created
+  name              = "/aws/lambda/starttech-api-log-v5" 
+  retention_in_days = 7
 }
 
-# Import for Logs
-import {
-  to = aws_cloudwatch_log_group.api_log
-  id = "/aws/lambda/starttech-api-log"
-}
-
-# Import for existing VPC - STOPS VpcLimitExceeded ERROR
+# Keep your VPC import as it is (assuming you added the correct ID)
 import {
   to = module.networking.aws_vpc.main
   id = "vpc-0357a5db33ec39634" 
