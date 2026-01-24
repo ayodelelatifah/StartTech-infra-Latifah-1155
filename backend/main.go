@@ -1,21 +1,26 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
+    "fmt"
+    "net/http"
+    "os"
 )
 
 func main() {
-	// Root endpoint
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, StartTech!")
-	})
+    // 1. Health Check Endpoint (Required for ECS/ALB)
+    http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+        w.WriteHeader(http.StatusOK)
+        fmt.Fprintln(w, "OK")
+    })
 
-	// Health check endpoint for AWS Load Balancer
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "OK")
-	})
+    // 2. Simple API Response
+    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+        fmt.Fprintf(w, "Hello from StartTech Backend! Environment: %s", os.Getenv("ENVIRONMENT"))
+    })
 
-	http.ListenAndServe(":8080", nil)
+    port := "8080"
+    fmt.Printf("Server starting on port %s...\n", port)
+    if err := http.ListenAndServe(":"+port, nil); err != nil {
+        fmt.Printf("Failed to start server: %v\n", err)
+    }
 }
