@@ -12,3 +12,4 @@ module "app" {
   vpc_id     = module.networking.vpc_id
   subnet_ids = module.networking.public_subnet_ids 
 }
+
