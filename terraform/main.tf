@@ -1,4 +1,4 @@
-# 1. DYNAMIC LOOKUP - Automatically finds your existing VPC and Subnets
+# 1. DYNAMIC LOOKUP - Finding your existing networking
 data "aws_vpc" "selected" {
   id = "vpc-0357a5db33ec39634"
 }
@@ -10,31 +10,31 @@ data "aws_subnets" "all" {
   }
 }
 
-# 2. S3 BUCKET (Fresh v12 name)
-resource "aws_s3_bucket" "frontend" {
-  bucket = "starttech-frontend-latifah-v12-${random_id.id.hex}"
-}
-
 resource "random_id" "id" { 
   byte_length = 4 
 }
 
+# 2. S3 BUCKET
+resource "aws_s3_bucket" "frontend" {
+  bucket = "starttech-frontend-latifah-v13-${random_id.id.hex}"
+}
+
 # 3. ECR REPOSITORY
 resource "aws_ecr_repository" "backend" {
-  name                 = "starttech-backend-repo-v12"
+  name                 = "starttech-backend-repo-v13-${random_id.id.hex}"
   image_tag_mutability = "MUTABLE"
 }
 
 # 4. ALB & TARGET GROUP
 resource "aws_alb" "main" {
-  name            = "starttech-alb-v12"
+  name            = "starttech-alb-v13-${random_id.id.hex}"
   subnets         = data.aws_subnets.all.ids 
   security_groups = [aws_security_group.alb_sg.id]
 }
 
 resource "aws_lb_target_group" "backend_tg" {
   target_type = "ip"
-  name        = "starttech-tg-v12"
+  name        = "tg-v13-${random_id.id.hex}" # Shortened to stay under char limit
   port        = 80
   protocol    = "HTTP"
   vpc_id      = data.aws_vpc.selected.id
@@ -52,7 +52,7 @@ resource "aws_lb_listener" "http" {
 
 # 5. SECURITY GROUPS
 resource "aws_security_group" "alb_sg" {
-  name   = "starttech-alb-sg-v12"
+  name   = "alb-sg-v13-${random_id.id.hex}"
   vpc_id = data.aws_vpc.selected.id
   ingress {
     from_port   = 80
@@ -69,7 +69,7 @@ resource "aws_security_group" "alb_sg" {
 }
 
 resource "aws_security_group" "backend_sg" {
-  name   = "starttech-backend-sg-v12"
+  name   = "backend-sg-v13-${random_id.id.hex}"
   vpc_id = data.aws_vpc.selected.id
   ingress {
     from_port       = 80
@@ -95,18 +95,18 @@ module "app" {
   security_group_id = aws_security_group.backend_sg.id
 }
 
-# 7. CLOUDWATCH LOGS - Renamed to v12 to kill the "AlreadyExists" error
+# 7. LOG GROUPS - THE FINAL FIX (Using Random Hex)
 resource "aws_cloudwatch_log_group" "api_log" {
-  name              = "/aws/lambda/starttech-api-v12" 
+  name              = "/aws/lambda/api-v13-${random_id.id.hex}" 
   retention_in_days = 7
 }
 
 resource "aws_cloudwatch_log_group" "backend_logs" {
-  name              = "/ecs/starttech-backend-v12"
+  name              = "/ecs/backend-v13-${random_id.id.hex}"
   retention_in_days = 7
 }
 
 resource "aws_cloudwatch_log_group" "ecs_logs" {
-  name              = "/ecs/starttech-service-v12"
+  name              = "/ecs/service-v13-${random_id.id.hex}"
   retention_in_days = 7
 }
