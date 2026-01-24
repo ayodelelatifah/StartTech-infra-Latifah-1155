@@ -20,4 +20,4 @@ jobs:
       - name: Build Docker Image
         run: |
           cd backend
-          docker build -t starttech-backend .
+          docker build -t starttech-backend -f Dockerfile .
