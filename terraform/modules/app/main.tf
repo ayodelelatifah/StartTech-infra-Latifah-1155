@@ -84,7 +84,7 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
 }
 
 # 5. CloudWatch Log Group
-resource "aws_cloudwatch_log_group" "ecs_logs" {
-  name              = "/ecs/starttech-backend"
-  retention_in_days = 7
-}
+# resource "aws_cloudwatch_log_group" "ecs_logs" {
+#  name              = "/ecs/starttech-backend"
+#  retention_in_days = 7
+# }

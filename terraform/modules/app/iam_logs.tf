@@ -1,15 +1,15 @@
 # CloudWatch Log Group for Backend Logs
-resource "aws_cloudwatch_log_group" "api_log" {
-  name = "/aws/lambda/starttech-api-log"
+# resource "aws_cloudwatch_log_group" "api_log" {
+#  name = "/aws/lambda/starttech-api-log"
 
-  lifecycle {
-    ignore_changes = all
-  }
-}
-resource "aws_cloudwatch_log_group" "backend_logs" {
-  name              = "/ecs/starttech-backend-v5"
-  retention_in_days = 7
-}
+#  lifecycle {
+#    ignore_changes = all
+#  }
+# }
+# resource "aws_cloudwatch_log_group" "backend_logs" {
+#  name              = "/ecs/starttech-backend-v5"
+#  retention_in_days = 7
+# }
 
 # IAM Role for EC2/ECS Instances
 resource "aws_iam_role" "ecs_agent" {
@@ -37,7 +37,7 @@ resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy" {
 }
 
 # Policy to allow writing to CloudWatch
-resource "aws_iam_role_policy_attachment" "ecs_cw_logs" {
-  role       = aws_iam_role.ecs_agent.name
-  policy_arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
-}
+# resource "aws_iam_role_policy_attachment" "ecs_cw_logs" {
+#  role       = aws_iam_role.ecs_agent.name
+#  policy_arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+# }
