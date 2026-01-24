@@ -1,13 +1,24 @@
 variable "vpc_id" {
   type        = string
-  description = "The ID of the VPC from networking module"
+  description = "The ID of the VPC from the networking module"
 }
 
-variable "subnet_ids" { # Note the 's' for plural
-  type        = list(string) # This MUST be list(string)
-  description = "The list of public subnets from networking module"
+variable "subnet_ids" {
+  type        = list(string)
+  description = "The list of public subnets from the networking module"
 }
+
 variable "ecr_repo_url" {
-  description = "The URL of the ECR repository"
   type        = string
+  description = "The URL of the ECR repository created in the root"
+}
+
+variable "target_group_arn" {
+  type        = string
+  description = "The ARN of the Load Balancer target group created in the root"
+}
+
+variable "security_group_id" {
+  type        = string
+  description = "The ID of the backend security group created in the root"
 }

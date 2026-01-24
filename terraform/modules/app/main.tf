@@ -1,112 +1,90 @@
-# 1. S3 Bucket for Frontend
-resource "aws_s3_bucket" "frontend" {
-  bucket = "starttech-frontend-latifah-${random_id.id.hex}"
+# 1. ECS Cluster
+resource "aws_ecs_cluster" "main" {
+  name = "starttech-cluster"
 }
 
-resource "random_id" "id" { 
-  byte_length = 4 
+# 2. ECS Task Definition
+# This defines the "blueprint" for your container
+resource "aws_ecs_task_definition" "app" {
+  family                   = "starttech-backend-task"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "256"
+  memory                   = "512"
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+
+  container_definitions = jsonencode([
+    {
+      name      = "backend"
+      image     = "${var.ecr_repo_url}:latest" # Uses the variable passed from root
+      essential = true
+      portMappings = [
+        {
+          containerPort = 80
+          hostPort      = 80
+          protocol      = "tcp"
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/starttech-backend"
+          "awslogs-region"        = "us-east-1" # Change to your region
+          "awslogs-stream-prefix" = "ecs"
+        }
+      }
+    }
+  ])
 }
 
-# 2. ECR Repository (Creates the URL needed for the App Module)
-resource "aws_ecr_repository" "backend" {
-  name                 = "starttech-backend-repo"
-  image_tag_mutability = "MUTABLE"
+# 3. ECS Service
+# This maintains the desired number of running instances
+resource "aws_ecs_service" "main" {
+  name            = "starttech-service"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.app.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
 
-  image_scanning_configuration {
-    scan_on_push = true
+  network_configuration {
+    subnets          = var.subnet_ids
+    security_groups  = [var.security_group_id]
+    assign_public_ip = true
+  }
+
+  load_balancer {
+    target_group_arn = var.target_group_arn
+    container_name   = "backend"
+    container_port   = 80
   }
 }
 
-# 3. Infrastructure: Load Balancer & Routing
-resource "aws_alb" "main" {
-  name            = "starttech-alb-v5"
-  subnets         = var.subnet_ids
-  security_groups = [aws_security_group.alb_sg.id]
+# 4. IAM Role for ECS Execution
+# This allows ECS to pull images from ECR and send logs to CloudWatch
+resource "aws_iam_role" "ecs_task_execution_role" {
+  name = "starttech-ecs-task-execution-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
 }
 
-resource "aws_lb_target_group" "backend_tg" {
-  name     = "starttech-backend-tg-v5"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = var.vpc_id
-
-  health_check {
-    path                = "/health"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
-    matcher             = "200"
-  }
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-resource "aws_lb_listener" "http" {
-  load_balancer_arn = aws_alb.main.arn
-  port              = "80"
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.backend_tg.arn
-  }
-}
-
-# 4. Security Groups
-resource "aws_security_group" "alb_sg" {
-  vpc_id = var.vpc_id
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-resource "aws_security_group" "backend_sg" {
-  name   = "starttech-backend-sg-v5"
-  vpc_id = var.vpc_id
-
-  ingress {
-    from_port       = 80
-    to_port         = 80
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb_sg.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-# 5. Redis Cluster
-resource "aws_elasticache_cluster" "redis" {
-  cluster_id           = "starttech-redis-v5"
-  engine               = "redis"
-  node_type            = "cache.t3.micro"
-  num_cache_nodes      = 1
-  parameter_group_name = "default.redis7"
-  port                 = 6379
-}
-
-# 6. App Module
-module "app" {
-  source       = "./modules/app" 
-  vpc_id       = var.vpc_id
-  subnet_ids   = var.subnet_ids
-  
-  # Resolves the "ecr_repo_url is required" error
-  ecr_repo_url = aws_ecr_repository.backend.repository_url
-  
-  # Injects necessary resource IDs into the module
-  target_group_arn  = aws_lb_target_group.backend_tg.arn
-  security_group_id = aws_security_group.backend_sg.id
+# 5. CloudWatch Log Group
+resource "aws_cloudwatch_log_group" "ecs_logs" {
+  name              = "/ecs/starttech-backend"
+  retention_in_days = 7
 }
