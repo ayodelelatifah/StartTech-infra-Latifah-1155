@@ -62,7 +62,7 @@ resource "aws_ecs_service" "main" {
 # 4. IAM Role for ECS Execution
 # This allows ECS to pull images from ECR and send logs to CloudWatch
 resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "starttech-ecs-task-execution-role"
+  name_prefix = "starttech-ecs-task"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
