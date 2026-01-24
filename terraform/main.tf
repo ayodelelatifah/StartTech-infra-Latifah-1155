@@ -27,15 +27,17 @@ resource "aws_ecr_repository" "backend" {
 # 4. Infrastructure: Load Balancer & Routing
 resource "aws_alb" "main" {
   name            = "starttech-alb-v5"
-  subnets         = module.networking.public_subnet_ids # Linked to networking module
+  subnets         = module.networking.public_subnet_ids
   security_groups = [aws_security_group.alb_sg.id]
 }
 
 resource "aws_lb_target_group" "backend_tg" {
-  name     = "starttech-backend-tg-v5"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = module.networking.vpc_id # Linked to networking module
+  name        = "starttech-backend-tg-v5"
+  port        = 80
+  protocol    = "HTTP"
+  vpc_id      = module.networking.vpc_id
+  # FIX: Required for Fargate compatibility (awsvpc mode)
+  target_type = "ip" 
 
   health_check {
     path                = "/health"
@@ -57,7 +59,6 @@ resource "aws_lb_listener" "http" {
     target_group_arn = aws_lb_target_group.backend_tg.arn
   }
 }
-
 # 5. Security Groups
 resource "aws_security_group" "alb_sg" {
   vpc_id = module.networking.vpc_id
