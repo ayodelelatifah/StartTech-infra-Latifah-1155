@@ -40,8 +40,8 @@ resource "aws_lb_target_group" "backend_tg" {
   port        = 80
   protocol    = "HTTP"
   vpc_id      = module.networking.vpc_id
-  # FIX: Required for Fargate compatibility (awsvpc mode)
-  target_type = "ip" 
+
+
 
   health_check {
     path                = "/health"
