@@ -1,12 +1,12 @@
-# 1. NETWORKING - Kept commented out to avoid subnet/gateway conflicts
+# 1. NETWORKING - Commented out to avoid subnet/gateway conflicts
 # module "networking" {
 #   source = "./modules/networking"
 # }
 
 # 2. S3 Bucket for Frontend
 resource "aws_s3_bucket" "frontend" {
-  # Added 'final' to ensure bucket name uniqueness
-  bucket = "starttech-frontend-latifah-final-${random_id.id.hex}"
+  # Unique v7 name
+  bucket = "starttech-frontend-latifah-v7-${random_id.id.hex}"
 }
 
 resource "random_id" "id" { 
@@ -15,7 +15,7 @@ resource "random_id" "id" {
 
 # 3. ECR Repository
 resource "aws_ecr_repository" "backend" {
-  name                 = "starttech-backend-repo-final"
+  name                 = "starttech-backend-repo-v7"
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
@@ -25,14 +25,14 @@ resource "aws_ecr_repository" "backend" {
 
 # 4. Infrastructure: Load Balancer & Routing
 resource "aws_alb" "main" {
-  name            = "starttech-alb-deploy-v6" # Incremented version
+  name            = "starttech-alb-v7" # Unique ALB name
   subnets         = ["subnet-07080b06b0d990666", "subnet-08f32c18096f30419"] 
   security_groups = [aws_security_group.alb_sg.id]
 }
 
 resource "aws_lb_target_group" "backend_tg" {
   target_type = "ip"
-  name        = "starttech-tg-deploy-v6" # Incremented version
+  name        = "starttech-tg-v7" 
   port        = 80
   protocol    = "HTTP"
   vpc_id      = "vpc-0357a5db33ec39634"
@@ -60,7 +60,7 @@ resource "aws_lb_listener" "http" {
 
 # 5. Security Groups
 resource "aws_security_group" "alb_sg" {
-  name   = "starttech-alb-sg-v6"
+  name   = "starttech-alb-sg-v7"
   vpc_id = "vpc-0357a5db33ec39634"
   ingress {
     from_port   = 80
@@ -77,7 +77,7 @@ resource "aws_security_group" "alb_sg" {
 }
 
 resource "aws_security_group" "backend_sg" {
-  name   = "starttech-backend-sg-v6"
+  name   = "starttech-backend-sg-v7"
   vpc_id = "vpc-0357a5db33ec39634"
 
   ingress {
@@ -104,14 +104,13 @@ module "app" {
   security_group_id = aws_security_group.backend_sg.id
 }
 
-# 7. CloudWatch Log Group - THE CRITICAL FIX
-# We change the name to something brand new to avoid the "Already Exists" error
+# 7. CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "api_log" {
-  name              = "/aws/lambda/starttech-api-v6-success" 
+  name              = "/aws/lambda/starttech-api-v7-final" 
   retention_in_days = 7
 }
 
 resource "aws_cloudwatch_log_group" "backend_logs_final" {
-  name              = "/ecs/starttech-backend-v6-success"
+  name              = "/ecs/starttech-backend-v7-final"
   retention_in_days = 7
 }
