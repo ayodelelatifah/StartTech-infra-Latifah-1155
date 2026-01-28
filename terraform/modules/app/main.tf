@@ -3,8 +3,13 @@ resource "aws_ecs_cluster" "main" {
   name = "starttech-cluster"
 }
 
-# 2. ECS Task Definition
-# This defines the "blueprint" for your container
+# 2. CloudWatch Log Group (Required for the logConfiguration below)
+resource "aws_cloudwatch_log_group" "ecs_logs" {
+  name              = "/ecs/starttech-backend"
+  retention_in_days = 7
+}
+
+# 3. ECS Task Definition
 resource "aws_ecs_task_definition" "app" {
   family                   = "starttech-backend-task"
   network_mode             = "awsvpc"
@@ -16,12 +21,12 @@ resource "aws_ecs_task_definition" "app" {
   container_definitions = jsonencode([
     {
       name      = "backend"
-      image     = "${var.ecr_repo_url}:latest" # Uses the variable passed from root
+      image     = "${var.ecr_repo_url}:latest"
       essential = true
       portMappings = [
         {
-          containerPort = 80
-          hostPort      = 80
+          containerPort = 8080 # FIXED: Matches root Target Group
+          hostPort      = 8080
           protocol      = "tcp"
         }
       ]
@@ -29,7 +34,7 @@ resource "aws_ecs_task_definition" "app" {
         logDriver = "awslogs"
         options = {
           "awslogs-group"         = "/ecs/starttech-backend"
-          "awslogs-region"        = "us-east-1" # Change to your region
+          "awslogs-region"        = "us-east-1"
           "awslogs-stream-prefix" = "ecs"
         }
       }
@@ -37,8 +42,7 @@ resource "aws_ecs_task_definition" "app" {
   ])
 }
 
-# 3. ECS Service
-# This maintains the desired number of running instances
+# 4. ECS Service
 resource "aws_ecs_service" "main" {
   name            = "starttech-service"
   cluster         = aws_ecs_cluster.main.id
@@ -55,14 +59,13 @@ resource "aws_ecs_service" "main" {
   load_balancer {
     target_group_arn = var.target_group_arn
     container_name   = "backend"
-    container_port   = 80
+    container_port   = 8080 # FIXED: Matches Task Definition
   }
 }
 
-# 4. IAM Role for ECS Execution
-# This allows ECS to pull images from ECR and send logs to CloudWatch
+# 5. IAM Role for ECS Execution
 resource "aws_iam_role" "ecs_task_execution_role" {
-  name_prefix = "starttech-ecs-task"
+  name_prefix = "starttech-ecs-task-exec"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -82,9 +85,3 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   role       = aws_iam_role.ecs_task_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
-
-# 5. CloudWatch Log Group
-# resource "aws_cloudwatch_log_group" "ecs_logs" {
-#  name              = "/ecs/starttech-backend"
-#  retention_in_days = 7
-# }
