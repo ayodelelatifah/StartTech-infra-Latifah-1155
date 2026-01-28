@@ -18,6 +18,11 @@ output "alb_dns_name" {
   description = "The DNS name of the Load Balancer"
 }
 
+# These two are what the GitHub Action is searching for!
 output "ecs_cluster_name" {
   value = module.app.cluster_name
+}
+
+output "ecs_service_name" {
+  value = module.app.ecs_service_name
 }
