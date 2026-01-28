@@ -5,7 +5,7 @@ resource "aws_ecs_cluster" "main" {
 
 # 2. CloudWatch Log Group (Required for the logConfiguration below)
 resource "aws_cloudwatch_log_group" "ecs_logs" {
-  name              = "/ecs/starttech-backend"
+  name              = "/ecs/starttech-backend-v2"
   retention_in_days = 7
 }
 
@@ -44,7 +44,7 @@ resource "aws_ecs_task_definition" "app" {
 
 # 4. ECS Service
 resource "aws_ecs_service" "main" {
-  name            = "starttech-service"
+  name            = "starttech-service-v2"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.app.arn
   desired_count   = 1

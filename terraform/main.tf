@@ -47,7 +47,7 @@ resource "aws_route_table_association" "b" {
 
 # 2. ECR REPOSITORY
 resource "aws_ecr_repository" "backend" {
-  name                 = "starttech-backend-final"
+  name                 = "starttech-backend-v2"
   image_tag_mutability = "MUTABLE"
   force_delete         = true 
   image_scanning_configuration { scan_on_push = true }
@@ -107,13 +107,13 @@ resource "aws_security_group" "redis_sg" {
 
 # 4. LOAD BALANCER
 resource "aws_alb" "main" {
-  name            = "starttech-alb-final"
+  name            = "starttech-alb-v2"
   subnets         = [aws_subnet.subnet_a.id, aws_subnet.subnet_b.id]
   security_groups = [aws_security_group.alb_sg.id]
 }
 
 resource "aws_lb_target_group" "backend_tg" {
-  name        = "starttech-tg-final"
+  name        = "starttech-tg-v2"
   port        = 8080
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
@@ -149,12 +149,12 @@ resource "aws_s3_bucket" "frontend" {
 
 # 7. REDIS
 resource "aws_elasticache_subnet_group" "redis_subnets" {
-  name       = "starttech-redis-subnets"
+  name       = "starttech-redis-subnets-v2"
   subnet_ids = [aws_subnet.subnet_a.id, aws_subnet.subnet_b.id]
 }
 
 resource "aws_elasticache_cluster" "redis" {
-  cluster_id           = "starttech-redis"
+  cluster_id           = "starttech-redis-v2"
   engine               = "redis"
   node_type            = "cache.t3.micro"
   num_cache_nodes      = 1
