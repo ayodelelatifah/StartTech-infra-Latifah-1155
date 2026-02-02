@@ -149,7 +149,7 @@ resource "aws_s3_bucket" "frontend" {
 
 # 7. REDIS
 resource "aws_elasticache_subnet_group" "redis_subnets" {
-  name       = "starttech-redis-subnets-v2"
+  name       = "starttech-redis-subnets-v3"
   subnet_ids = [aws_subnet.subnet_a.id, aws_subnet.subnet_b.id]
 }
 
