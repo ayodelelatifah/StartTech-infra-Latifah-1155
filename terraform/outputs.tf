@@ -3,6 +3,7 @@ output "frontend_bucket_id" {
   description = "The name of the S3 bucket used for frontend hosting"
 }
 
+
 output "redis_endpoint" {
   value       = aws_elasticache_cluster.redis.cache_nodes[0].address
   description = "The connection endpoint for the Redis cluster"
