@@ -153,6 +153,7 @@ resource "aws_elasticache_subnet_group" "redis_subnets" {
   subnet_ids = [aws_subnet.subnet_a.id, aws_subnet.subnet_b.id]
 }
 
+
 resource "aws_elasticache_cluster" "redis" {
   cluster_id           = "starttech-redis-v2"
   engine               = "redis"
