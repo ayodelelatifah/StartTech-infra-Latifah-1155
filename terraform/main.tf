@@ -1,11 +1,3 @@
-# 1.1 TERRAFORM BACKEND 
-terraform {
-  backend "s3" {
-    bucket = "latifah-terraform-state-2026" # Replace with your actual created bucket
-    key    = "state/terraform.tfstate"
-    region = "us-east-1"
-  }
-}
 # 1. NEW NETWORK CREATION
 resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
